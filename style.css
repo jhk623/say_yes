@@ -1,0 +1,125 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b7280;
+  --card: #f4f4f5;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+  --danger: #dc2626;
+  --ok: #16a34a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113;
+    --fg: #f4f4f5;
+    --muted: #9ca3af;
+    --card: #1c1c1f;
+    --border: #2e2e33;
+    --accent: #60a5fa;
+    --danger: #f87171;
+    --ok: #4ade80;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, "Noto Sans KR", system-ui, sans-serif;
+  padding-bottom: 3rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+}
+
+header h1 { font-size: 1.1rem; margin: 0; }
+header button { background: none; border: none; font-size: 1.3rem; color: var(--fg); }
+
+.statusbar {
+  padding: 0.4rem 1.25rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+main { padding: 1rem 1.25rem; max-width: 720px; margin: 0 auto; }
+
+section h2 { font-size: 0.95rem; color: var(--muted); margin: 1.2rem 0 0.6rem; }
+
+.panel {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.panel.hidden { display: none; }
+.panel label { display: block; margin-bottom: 0.7rem; font-size: 0.85rem; }
+.panel input {
+  display: block;
+  width: 100%;
+  margin-top: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--fg);
+}
+.panel button, .pending-card button, .session-card button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+.hint { color: var(--muted); font-size: 0.8rem; }
+
+.session-list, .pending-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+
+.session-card, .pending-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+}
+
+.session-card { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.session-card .label { font-size: 0.9rem; word-break: break-all; }
+.session-card .status { font-size: 0.75rem; color: var(--muted); }
+.session-card .status.pending { color: var(--danger); font-weight: 600; }
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.toggle input { transform: scale(1.2); }
+
+.pending-card .meta { font-size: 0.8rem; color: var(--muted); margin-bottom: 0.4rem; }
+.pending-card pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.pending-card .options { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0.5rem 0; }
+.pending-card .options button { background: var(--card); color: var(--fg); }
+.pending-card .options button.approve { background: var(--ok); color: #06280f; border-color: var(--ok); }
+.pending-card .options button.deny { background: var(--danger); color: #2a0a0a; border-color: var(--danger); }

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>auto-yes-bot</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>auto-yes-bot</h1>
+    <button id="settingsBtn" aria-label="설정">⚙</button>
+  </header>
+
+  <section id="settingsPanel" class="panel hidden">
+    <h2>설정 (이 기기에만 저장됩니다)</h2>
+    <label>ntfy 서버<input id="cfgServer" placeholder="https://ntfy.sh" /></label>
+    <label>토픽 접두사<input id="cfgPrefix" placeholder="예: abcd1234..." /></label>
+    <label>비밀키 (HMAC secret)<input id="cfgSecret" type="password" /></label>
+    <button id="saveSettings">저장하고 연결</button>
+    <p class="hint">relay.yaml에 설정한 topic_prefix / hmac_secret과 동일해야 합니다.</p>
+  </section>
+
+  <section id="statusBar" class="statusbar">연결 대기 중...</section>
+
+  <main>
+    <section>
+      <h2>세션</h2>
+      <ul id="sessionList" class="session-list"></ul>
+    </section>
+
+    <section>
+      <h2>승인 대기</h2>
+      <ul id="pendingList" class="pending-list"></ul>
+      <p id="emptyPending" class="hint">대기 중인 요청이 없습니다.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
