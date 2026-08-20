@@ -1,0 +1,10 @@
+{
+  "_comment": "tool_input을 JSON 문자열로 직렬화한 것에 대해 정규식으로 검사합니다. 매치되면 폰에 알리지 않고 조용히 통과(Claude Code의 원래 권한 처리로 위임)됩니다.",
+  "patterns_by_tool": {
+    "Bash": [
+      "\"command\"\\s*:\\s*\"git status",
+      "\"command\"\\s*:\\s*\"git diff",
+      "\"command\"\\s*:\\s*\"ls\\b"
+    ]
+  }
+}
