@@ -1,0 +1,12 @@
+{
+  "relay_host": "127.0.0.1",
+  "relay_port": 8765,
+
+  "label": null,
+
+  "http_timeout_sec": 3550,
+
+  "watched_tools": ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit", "WebFetch"],
+
+  "allowlist_file": "hook_allowlist.json"
+}
