@@ -70,7 +70,7 @@ function saveConfig(cfg) {
 function connect() {
   if (source) source.close();
   const topics = `${config.prefix}-notify,${config.prefix}-state`;
-  const url = `${config.server}/${topics}/sse`;
+  const url = `${config.server}/${topics}/sse?since=all`;
   source = new EventSource(url);
   setStatus(`연결 중... (${config.server})`);
 
