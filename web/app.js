@@ -70,7 +70,11 @@ function saveConfig(cfg) {
 function connect() {
   if (source) source.close();
   const topics = `${config.prefix}-notify,${config.prefix}-state`;
-  const url = `${config.server}/${topics}/sse`;
+  // since=all: 접속 직후 서버가 들고 있는 캐시된 기록을 전부 받아와서 세션
+  // 목록/상태가 바로 채워지게 한다 (안 붙이면 접속 이후 새로 생기는 이벤트만
+  // 보여서, 마지막 상태 갱신이 오래 전이었으면 새로 연 페이지엔 아무것도
+  // 안 보인다 — since=2h처럼 고정된 기간으로는 이 문제를 완전히 못 막는다).
+  const url = `${config.server}/${topics}/sse?since=all`;
   source = new EventSource(url);
   setStatus(`연결 중... (${config.server})`);
 

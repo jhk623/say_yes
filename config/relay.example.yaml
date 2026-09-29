@@ -1,0 +1,32 @@
+# Local Relay Agent 설정 (로컬 PC에 배포)
+# 실제 값을 채운 뒤 relay.yaml 로 복사해서 사용하세요. (relay.yaml은 git에 커밋하지 않기)
+
+# 원격 서버의 hooks/*.py가 접속해오는 로컬 리스닝 주소.
+# ~/.ssh/config 의 RemoteForward <remote_port> 127.0.0.1:<listen_port> 와 짝을 이룹니다.
+listen_host: 127.0.0.1
+listen_port: 8765
+
+ntfy:
+  server: https://ntfy.sh   # self-host 전환 시 이 값만 바꾸면 됩니다.
+  topic_prefix: "REPLACE_ME_RANDOM_PREFIX"   # 32바이트 정도의 랜덤 문자열 권장
+
+# Reply/제어 메시지 서명 검증에 쓰는 비밀키. 컴패니언 웹 UI 최초 설정 화면에
+# 동일한 값을 입력해야 합니다. relay와 web UI 외에는 아무도 몰라야 합니다.
+hmac_secret: "REPLACE_ME_RANDOM_SECRET"
+
+default_auto_approve: false
+
+# 세션별 auto-approve 토글을 재시작 후에도 기억하기 위한 저장 파일 경로.
+# 지정하지 않으면 이 프로젝트 폴더 안의 .state/auto_approve.json을 사용합니다.
+# auto_approve_store_path: /home/user/auto_yes_bot/.state/auto_approve.json
+
+# 사람이 응답하지 않을 때 다시 알림을 보내는 주기 (초). null이면 재알림 없음.
+renotify_interval_sec: 120
+
+# 이 시간(초) 안에 사람 응답이 없으면 hook에 "defer"를 돌려준다 -> hook은 아무
+# 출력도 안 하고 종료 -> Claude Code 자체의 기본 동작(대개 Antigravity에서 직접
+# 물어보는 것)으로 넘어간다. hook 쪽 timeout(settings.json)보다 작아야 한다.
+max_wait_sec: 3500
+
+# dry-run: true면 ntfy 대신 콘솔/로그 기반 ConsoleNotifier를 사용 (실제 폰 없이 로컬 테스트용)
+dry_run: false
