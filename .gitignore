@@ -10,3 +10,6 @@ config/hook_allowlist.json
 # 런타임 상태
 .state/
 .dryrun/
+
+# 문서 파일 (저장소에 안 올림)
+*.md
