@@ -8,5 +8,7 @@
 
   "watched_tools": ["Bash", "Write", "Edit", "MultiEdit", "NotebookEdit", "WebFetch"],
 
-  "allowlist_file": "hook_allowlist.json"
+  "allowlist_file": "hook_allowlist.json",
+
+  "excluded_cwd_prefixes": []
 }

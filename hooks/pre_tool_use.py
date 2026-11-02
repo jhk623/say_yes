@@ -57,6 +57,11 @@ def main() -> None:
 
     config = load_config()
 
+    cwd = payload_in.get("cwd") or ""
+    excluded_prefixes = config.get("excluded_cwd_prefixes", [])
+    if any(cwd.startswith(prefix) for prefix in excluded_prefixes):
+        return  # 이 디렉토리는 훅 자체를 건너뛴다 -> relay에 묻지 않고 Claude Code 기본 동작으로 위임
+
     watched = config.get("watched_tools")
     if watched is not None and tool_name not in watched:
         return  # 감시 대상이 아님 -> 아무 출력 없이 기본 동작으로 위임
