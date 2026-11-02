@@ -95,8 +95,16 @@ function Update-FromGitHub([string]$url) {
 }
 
 function Invoke-Remote([string]$sshHost, [string]$command) {
-    $out = & ssh -o BatchMode=yes -o ConnectTimeout=10 $sshHost $command 2>&1 | ForEach-Object { "$_" } | Out-String
-    return @{ Code = $LASTEXITCODE; Out = $out.Trim() }
+    # 원격(리눅스)은 UTF-8로 출력하는데 한글 Windows의 PowerShell 5.1은 CP949로 읽어서 한글이 깨진다
+    $prevEnc = [Console]::OutputEncoding
+    [Console]::OutputEncoding = [Text.Encoding]::UTF8
+    try {
+        $out = & ssh -o BatchMode=yes -o ConnectTimeout=10 $sshHost $command 2>&1 | ForEach-Object { "$_" } | Out-String
+        $code = $LASTEXITCODE
+    } finally {
+        [Console]::OutputEncoding = $prevEnc
+    }
+    return @{ Code = $code; Out = $out.Trim() }
 }
 
 function Start-Relay {
@@ -126,7 +134,9 @@ function Show-NewLines([string]$path, [string]$prefix, [string]$color) {
         $script:TailPos[$path] = $fs.Length
     } finally { $fs.Close() }
     foreach ($line in ($text -split "`r?`n")) {
-        if ($line.Trim()) { Log "$prefix $line" $color }
+        if (-not $line.Trim()) { continue }
+        # relay.py는 이미 [relay]/[ntfy] 태그를 붙여 찍으니, 태그 없는 줄(트레이스백 등)에만 붙인다
+        if ($line -match '^\[') { Log $line $color } else { Log "$prefix $line" $color }
     }
 }
 
