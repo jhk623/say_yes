@@ -133,7 +133,8 @@ function Show-NewLines([string]$path, [string]$prefix, [string]$color) {
 function Start-Tunnel($st, [int]$port) {
     $log = Join-Path $StateDir ("tunnel_{0}.log" -f $st.Host)
     if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
-    $argLine = "-n -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 " +
+    # -v: 로그에 "remote forward success"가 찍혀야 포워딩이 실제로 열린 것으로 판정한다.
+    $argLine = "-v -n -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 " +
                "-o ServerAliveCountMax=3 -o ConnectTimeout=10 -E `"$log`" " +
                "-R ${port}:127.0.0.1:$LocalPort $($st.Host)"
     $p = Start-Process -FilePath 'ssh' -ArgumentList $argLine -NoNewWindow -PassThru
@@ -144,11 +145,16 @@ function Start-Tunnel($st, [int]$port) {
     $st.Up = $false
 }
 
-function Last-TunnelError($st) {
+function Get-TunnelLog($st) {
     $log = Join-Path $StateDir ("tunnel_{0}.log" -f $st.Host)
     if (-not (Test-Path $log)) { return '' }
-    $last = Get-Content $log -Tail 2 -ErrorAction SilentlyContinue | Where-Object { $_.Trim() }
-    return ($last -join ' / ')
+    $fs = [IO.File]::Open($log, 'Open', 'Read', 'ReadWrite')
+    try { return (New-Object IO.StreamReader($fs)).ReadToEnd() } finally { $fs.Close() }
+}
+
+function Last-TunnelError([string]$log) {
+    $lines = $log -split "`r?`n" | Where-Object { $_.Trim() -and $_ -notmatch '^(debug\d|OpenSSH_)' }
+    return (($lines | Select-Object -Last 2) -join ' / ')
 }
 
 function Step-Tunnel($st, [datetime]$now) {
@@ -160,31 +166,44 @@ function Step-Tunnel($st, [datetime]$now) {
         return
     }
 
+    $log = Get-TunnelLog $st
+
     if ($st.Proc.HasExited) {
         if ($st.Up) {
             Log "$($st.Host): 터널 끊김 — 5초 후 재연결" Yellow
             $st.Idx = 0; $st.Fails = 0; $st.NextTry = $now.AddSeconds(5)
-        } else {
-            Log "$($st.Host): 포트 $($st.Port) 실패: $(Last-TunnelError $st)" Yellow
+        } elseif ($log -match 'remote port forwarding failed') {
+            # 그 원격 포트를 다른(유령) 리스너가 쥐고 있다 -> 예비 포트로
+            Log "$($st.Host): 원격 포트 $($st.Port)이(가) 이미 사용 중 — 예비 포트로 전환" Yellow
             $st.Fails++
             $st.Idx = ($st.Idx + 1) % $st.Ports.Count
             if ($st.Fails -ge $st.Ports.Count) {
-                Log "$($st.Host): 준비된 포트가 모두 실패 — 30초 후 재시도" Red
+                Log "$($st.Host): 준비된 포트가 모두 사용 중 — 30초 후 재시도" Red
                 $st.Fails = 0; $st.NextTry = $now.AddSeconds(30)
             } else {
                 $st.NextTry = $now
             }
+        } else {
+            # 서버 접속 자체 실패(꺼짐/네트워크/인증) -> 포트를 바꿔도 소용없으니 같은 포트로 대기 후 재시도
+            Log "$($st.Host): 서버 접속 실패 — 30초 후 재시도 ($(Last-TunnelError $log))" Red
+            $st.NextTry = $now.AddSeconds(30)
         }
         $st.Proc = $null
         return
     }
 
-    # ExitOnForwardFailure라 포워딩이 거부되면 ssh가 바로 죽는다. 8초 버티면 성공으로 본다.
-    if (-not $st.Up -and ($now - $st.StartedAt).TotalSeconds -ge 8) {
+    if ($st.Up) { return }
+
+    if ($log -match 'remote forward success') {
         $st.Up = $true; $st.Fails = 0
         $r = Invoke-Remote $st.Host "python3 $($st.Dir)/tools/set_relay_port.py $($st.Port)"
         if ($r.Code -eq 0) { Log "$($st.Host): 연결 완료 — $($r.Out)" Green }
         else { Log "$($st.Host): 터널은 열렸지만 확인 실패 — $($r.Out)" Red }
+    } elseif (($now - $st.StartedAt).TotalSeconds -ge 40) {
+        Log "$($st.Host): 40초 동안 응답 없음 — 다시 시도" Yellow
+        Stop-Process -Id $st.Proc.Id -Force -ErrorAction SilentlyContinue
+        $st.Proc = $null
+        $st.NextTry = $now.AddSeconds(5)
     }
 }
 
