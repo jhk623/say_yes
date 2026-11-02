@@ -144,10 +144,12 @@ function Start-Tunnel($st, [int]$port) {
     $log = Join-Path $StateDir ("tunnel_{0}.log" -f $st.Host)
     if (Test-Path $log) { Remove-Item $log -Force -ErrorAction SilentlyContinue }
     # -v: 로그에 "remote forward success"가 찍혀야 포워딩이 실제로 열린 것으로 판정한다.
+    # ssh의 -E 로그 파일은 Windows에서 실행 중 잠겨서 못 읽으므로, stderr를 PowerShell이
+    # 파일로 리다이렉트하게 한다 (relay.log와 같은 방식 — 실행 중에도 읽힘).
     $argLine = "-v -n -N -o BatchMode=yes -o ExitOnForwardFailure=yes -o ServerAliveInterval=15 " +
-               "-o ServerAliveCountMax=3 -o ConnectTimeout=10 -E `"$log`" " +
+               "-o ServerAliveCountMax=3 -o ConnectTimeout=10 " +
                "-R ${port}:127.0.0.1:$LocalPort $($st.Host)"
-    $p = Start-Process -FilePath 'ssh' -ArgumentList $argLine -NoNewWindow -PassThru
+    $p = Start-Process -FilePath 'ssh' -ArgumentList $argLine -NoNewWindow -PassThru -RedirectStandardError $log
     $null = $p.Handle
     $st.Proc = $p
     $st.Port = $port
@@ -158,8 +160,12 @@ function Start-Tunnel($st, [int]$port) {
 function Get-TunnelLog($st) {
     $log = Join-Path $StateDir ("tunnel_{0}.log" -f $st.Host)
     if (-not (Test-Path $log)) { return '' }
-    $fs = [IO.File]::Open($log, 'Open', 'Read', 'ReadWrite')
-    try { return (New-Object IO.StreamReader($fs)).ReadToEnd() } finally { $fs.Close() }
+    try {
+        $fs = [IO.File]::Open($log, 'Open', 'Read', 'ReadWrite')
+        try { return (New-Object IO.StreamReader($fs)).ReadToEnd() } finally { $fs.Close() }
+    } catch {
+        return ''  # 잠깐 잠겨 있으면 이번 회차는 건너뛰고 다음 2초 뒤에 다시 읽는다
+    }
 }
 
 function Last-TunnelError([string]$log) {
@@ -310,17 +316,24 @@ Log "감시 중. 종료하려면 Ctrl+C (창을 그냥 닫으면 백그라운드
 
 try {
     while ($true) {
-        if ($Relay.HasExited) {
+        try {
+            if ($Relay.HasExited) {
+                Show-NewLines (Join-Path $StateDir 'relay.err.log') '[relay]' Red
+                Log "relay.py가 종료됨 (exit $($Relay.ExitCode)) — 재시작" Yellow
+                $Relay = Start-Relay
+                Start-Sleep -Seconds 3
+            }
+        } catch { Log "relay 재시작 중 오류 (계속 감시): $($_.Exception.Message)" Red }
+        try {
+            Show-NewLines (Join-Path $StateDir 'relay.log') '[relay]' DarkGray
             Show-NewLines (Join-Path $StateDir 'relay.err.log') '[relay]' Red
-            Log "relay.py가 종료됨 (exit $($Relay.ExitCode)) — 재시작" Yellow
-            $Relay = Start-Relay
-            Start-Sleep -Seconds 3
-        }
-        Show-NewLines (Join-Path $StateDir 'relay.log') '[relay]' DarkGray
-        Show-NewLines (Join-Path $StateDir 'relay.err.log') '[relay]' Red
+        } catch { }
 
         $now = Get-Date
-        foreach ($st in $Tunnels) { Step-Tunnel $st $now }
+        foreach ($st in $Tunnels) {
+            # 한 서버의 예상 못한 에러가 감시 전체를 죽이지 않도록
+            try { Step-Tunnel $st $now } catch { Log "$($st.Host): 내부 오류 (계속 감시): $($_.Exception.Message)" Red }
+        }
         Start-Sleep -Seconds 2
     }
 } finally {
