@@ -11,6 +11,12 @@ import urllib.request
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# 모든 hook이 맨 처음 이 모듈을 import하므로, 여기서 끝내면 6개 hook이 한꺼번에
+# 꺼진다. exit 0 + 출력 없음은 "허용"이 아니라 "결정 안 함" — Claude Code 기본
+# 권한 처리로 넘어간다 (헤드리스면 --allowedTools 등으로 따로 허용해야 함).
+if os.environ.get("CAE_HEADLESS") == "1":
+    sys.exit(0)
+
 
 def load_json(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as f:
